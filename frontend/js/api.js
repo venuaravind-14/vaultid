@@ -1,13 +1,17 @@
 /* ===== VaultID API Client ===== */
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = 'https://vaultid-ubsw.onrender.com/api';
 
 class VaultAPI {
   constructor() {
     this._token = localStorage.getItem('vaultid_token');
+    this._user = JSON.parse(localStorage.getItem('vaultid_user') || 'null');
   }
 
   get token() { return this._token; }
   set token(t) { this._token = t; if (t) localStorage.setItem('vaultid_token', t); else localStorage.removeItem('vaultid_token'); }
+
+  get user() { return this._user; }
+  set user(u) { this._user = u; if (u) localStorage.setItem('vaultid_user', JSON.stringify(u)); else localStorage.removeItem('vaultid_user'); }
 
   headers(extra = {}) {
     return {
@@ -28,7 +32,7 @@ class VaultAPI {
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       return data;
     } catch (e) {
-      if (e.message.includes('Failed to fetch')) throw new Error('Cannot connect to server. Make sure the backend is running on port 3001.');
+      if (e.message.includes('Failed to fetch')) throw new Error('Network error: Cannot connect to backend server. Please check your connection.');
       throw e;
     }
   }
@@ -36,6 +40,19 @@ class VaultAPI {
   // Auth
   register(name, email, password) { return this.request('POST', '/auth/register', { name, email, password }); }
   login(email, password) { return this.request('POST', '/auth/login', { email, password }); }
+  loginWithGoogle() { window.location.href = `${API_BASE}/auth/google`; }
+  handleGoogleCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const user = params.get('user');
+    if (token && user) {
+      this.token = token;
+      this.user = JSON.parse(user);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return { token, user: JSON.parse(user) };
+    }
+    return null;
+  }
   me() { return this.request('GET', '/auth/me'); }
 
   // Cards

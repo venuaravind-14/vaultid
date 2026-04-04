@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const passport = require('passport');
 const { generateToken, authenticateToken } = require('../middleware/auth');
 
 // POST /api/auth/register
@@ -58,5 +59,24 @@ router.get('/me', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch user' });
   }
 });
+
+// Google OAuth Routes
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+router.get('/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  (req, res) => {
+    // Generate JWT token for the authenticated user
+    const token = generateToken(req.user);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5500';
+    // Redirect to frontend with token
+    res.redirect(`${frontendUrl}?token=${token}&user=${encodeURIComponent(JSON.stringify({ 
+      id: req.user._id, 
+      name: req.user.name, 
+      email: req.user.email, 
+      role: req.user.role 
+    }))}`);
+  }
+);
 
 module.exports = router;

@@ -5,7 +5,10 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs');
+const session = require('express-session');
+const passport = require('passport');
 const connectDB  = require('./config/database');
+require('./config/passport'); // Load passport config
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -14,14 +17,32 @@ const PORT = process.env.PORT || 3001;
 const uploadDir = process.env.UPLOAD_DIR || './uploads';
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
+// Session middleware (required for Passport)
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  cookie: { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }
+}));
+
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500', 'http://127.0.0.1:5500'],
+  origin: [
+    'http://localhost:3000', 'http://127.0.0.1:3000',
+    'http://localhost:5500', 'http://127.0.0.1:5500',
+    'https://vaultid.netlify.app',
+    'https://vaultid-ubsw.onrender.com',
+    process.env.FRONTEND_URL
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Serve uploaded card images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

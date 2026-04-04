@@ -10,6 +10,16 @@ let qrInstances = {};
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check for Google OAuth callback
+  const googleCallback = api.handleGoogleCallback();
+  if (googleCallback) {
+    currentUser = googleCallback.user;
+    crypto_vault.setKey('google-oauth-' + Date.now()); // Set a temporary key for OAuth users
+    sessionStorage.setItem('vaultid_key', crypto_vault.key);
+    showApp();
+    return;
+  }
+
   // Check stored session
   const token = localStorage.getItem('vaultid_token');
   const storedUser = localStorage.getItem('vaultid_user');
@@ -117,7 +127,7 @@ async function handleRegister(e) {
 }
 
 function googleLogin() {
-  toast('Google OAuth: Connect your Google Cloud project in server-side config', 'error');
+  api.loginWithGoogle();
 }
 
 function logout() {
@@ -185,7 +195,7 @@ function renderCards(cards) {
     try { decrypted = crypto_vault.decrypt(card.encrypted_data) || {}; } catch {}
 
     const imgHtml = card.card_image_path
-      ? `<div class="card-img-preview"><img src="http://localhost:3001${card.card_image_path}" alt="Card" onerror="this.parentElement.style.display='none'"/></div>`
+      ? `<div class="card-img-preview"><img src="${API_BASE.replace('/api', '')}${card.card_image_path}" alt="Card" onerror="this.parentElement.style.display='none'"/></div>`
       : '';
 
     return `
