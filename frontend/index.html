@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VaultID — Digital ID Card Wallet</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- jsQR for camera scanning -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+</head>
+<body>
+
+<!-- ============================================================
+     AUTH PAGE
+     ============================================================ -->
+<div id="auth-page" class="page active">
+  <div class="auth-container">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><circle cx="8" cy="10" r="2"/><path d="M14 8h4M14 11h3" stroke-linecap="round"/><path d="M5 21h14" opacity="0.5" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div class="auth-logo-text">VaultID</div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:1px">Digital ID Wallet</div>
+        </div>
+      </div>
+
+      <!-- Role Select -->
+      <div class="role-select">
+        <button class="role-btn active" data-role="user" onclick="setRole('user')">
+          <div style="font-size:20px;margin-bottom:4px">👤</div>
+          User / Student
+        </button>
+        <button class="role-btn" data-role="admin" onclick="setRole('admin')">
+          <div style="font-size:20px;margin-bottom:4px">🛡️</div>
+          Admin / Security
+        </button>
+      </div>
+      <input type="hidden" id="selected-role" value="user"/>
+
+      <!-- Login / Register Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login" onclick="setAuthTab('login')">Sign In</button>
+        <button class="auth-tab" data-tab="register" onclick="setAuthTab('register')">Register</button>
+      </div>
+
+      <!-- Google -->
+      <button class="btn-google" onclick="googleLogin()">
+        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <div class="divider"><div class="divider-line"></div><span class="divider-text">OR</span><div class="divider-line"></div></div>
+
+      <!-- Login Form -->
+      <div id="login-form">
+        <form onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input id="login-email" type="email" class="form-input" placeholder="you@example.com" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input id="login-password" type="password" class="form-input" placeholder="••••••••" required/>
+          </div>
+          <button id="login-btn" type="submit" class="btn btn-primary btn-full" style="margin-top:8px">Sign In</button>
+        </form>
+        <div style="margin-top:14px;padding:12px;background:var(--card);border-radius:var(--radius-sm);font-size:12px;color:var(--muted2);line-height:1.6">
+          <strong style="color:var(--accent)">Demo accounts:</strong><br/>
+          User: demo@vaultid.app / demo1234<br/>
+          Admin: admin@vaultid.app / admin123
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <div id="register-form" style="display:none">
+        <form onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input id="reg-name" type="text" class="form-input" placeholder="Arjun Rajan" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input id="reg-email" type="email" class="form-input" placeholder="you@example.com" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password <span style="color:var(--muted);font-weight:400">(min 6 chars — used as your encryption key)</span></label>
+            <input id="reg-password" type="password" class="form-input" placeholder="••••••••" required minlength="6"/>
+          </div>
+          <div style="font-size:11px;color:var(--accent3);margin-bottom:14px;display:flex;gap:6px;align-items:flex-start">
+            <span>🔒</span> Your password encrypts all your data with AES-256. Even admins cannot see your cards or documents.
+          </div>
+          <button id="register-btn" type="submit" class="btn btn-primary btn-full">Create Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     USER APP PAGE
+     ============================================================ -->
+<div id="app-page" class="page">
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><circle cx="8" cy="10" r="2"/><path d="M14 8h4M14 11h3" stroke-linecap="round"/></svg>
+        </div>
+        VaultID
+      </div>
+
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebar-initials">AR</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebar-name">User</div>
+          <div class="user-role" id="sidebar-email">user@vaultid.app</div>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">My Vault</div>
+        <button class="nav-item active" data-section="cards" onclick="navigateTo('cards')">
+          <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 9h16" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="12" r="1" fill="currentColor"/></svg>
+          ID Cards
+        </button>
+        <button class="nav-item" data-section="documents" onclick="navigateTo('documents')">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5"/><path d="M12 3v4h4M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Documents
+        </button>
+        <button class="nav-item" data-section="files" onclick="navigateTo('files')">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M3 5a2 2 0 0 1 2-2h4l2 2h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z" stroke="currentColor" stroke-width="1.5"/></svg>
+          Files & Important
+        </button>
+        <button class="nav-item" data-section="scanner" onclick="navigateTo('scanner')">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M3 7V5a2 2 0 0 1 2-2h2M13 3h2a2 2 0 0 1 2 2v2M17 13v2a2 2 0 0 1-2 2h-2M7 17H5a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 10h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          QR Scanner
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Account</div>
+        <button class="nav-item" data-section="security" onclick="navigateTo('security')">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 2L3 6v5c0 4.5 3 8 7 9 4-1 7-4.5 7-9V6l-7-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Security
+        </button>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button class="nav-item" onclick="logout()" style="color:var(--danger)">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M13 10H3M13 10l-3-3M13 10l-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 6V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Sign Out
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="main-content">
+
+      <!-- ===== CARDS VIEW ===== -->
+      <div id="view-cards" class="section-view">
+        <div class="page-header">
+          <div class="page-title">ID Cards</div>
+          <div class="page-subtitle">All your digital identity cards, encrypted and secure</div>
+        </div>
+        <div class="content-area">
+          <div class="stats-row">
+            <div class="stat-card"><div class="stat-label">Total Cards</div><div class="stat-value blue" id="card-count-stat">0</div></div>
+            <div class="stat-card"><div class="stat-label">Encryption</div><div class="stat-value teal" style="font-size:16px">AES-256</div></div>
+            <div class="stat-card"><div class="stat-label">Status</div><div class="stat-value" style="font-size:16px;color:var(--accent3)">Active</div></div>
+            <div class="stat-card"><div class="stat-label">Admin Access</div><div class="stat-value" style="font-size:16px;color:var(--danger)">Blocked</div></div>
+          </div>
+
+          <div class="section-header">
+            <span class="section-title">My Cards</span>
+            <button class="btn btn-primary" onclick="showAddCardModal()">
+              <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Add Card
+            </button>
+          </div>
+
+          <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all" onclick="filterCards('all')">All</button>
+            <button class="filter-btn" data-filter="student" onclick="filterCards('student')">Student ID</button>
+            <button class="filter-btn" data-filter="bus" onclick="filterCards('bus')">Bus Pass</button>
+            <button class="filter-btn" data-filter="library" onclick="filterCards('library')">Library</button>
+            <button class="filter-btn" data-filter="employee" onclick="filterCards('employee')">Employee</button>
+            <button class="filter-btn" data-filter="uploaded" onclick="filterCards('uploaded')">Uploaded</button>
+            <button class="filter-btn" data-filter="custom" onclick="filterCards('custom')">Custom</button>
+          </div>
+
+          <div class="cards-grid" id="cards-grid">
+            <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted2)">Loading cards...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DOCUMENTS VIEW ===== -->
+      <div id="view-documents" class="section-view" style="display:none">
+        <div class="page-header">
+          <div class="page-title">Official Documents</div>
+          <div class="page-subtitle">Upload certificates, letters, PDFs — all AES-256 encrypted</div>
+        </div>
+        <div class="content-area">
+          <div id="doc-dropzone" class="upload-zone">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">Drop files here or click to upload</div>
+            <div class="upload-hint">PDF, DOC, TXT, Images — max 5MB</div>
+          </div>
+          <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp"/>
+          <div class="section-header" style="margin-top:8px">
+            <span class="section-title">Uploaded Documents</span>
+            <span class="enc-badge">🔒 Encrypted</span>
+          </div>
+          <div class="file-list" id="docs-list"></div>
+        </div>
+      </div>
+
+      <!-- ===== FILES VIEW ===== -->
+      <div id="view-files" class="section-view" style="display:none">
+        <div class="page-header">
+          <div class="page-title">Files & Important</div>
+          <div class="page-subtitle">Store any sensitive files, securely encrypted</div>
+        </div>
+        <div class="content-area">
+          <div id="file-dropzone" class="upload-zone">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Drop files here or click to upload</div>
+            <div class="upload-hint">Any file type — max 5MB — encrypted before upload</div>
+          </div>
+          <input type="file" id="file-file-input"/>
+          <div class="section-header" style="margin-top:8px">
+            <span class="section-title">My Files</span>
+            <span class="enc-badge">🔒 Encrypted</span>
+          </div>
+          <div class="file-list" id="files-list"></div>
+        </div>
+      </div>
+
+      <!-- ===== SCANNER VIEW ===== -->
+      <div id="view-scanner" class="section-view" style="display:none">
+        <div class="page-header">
+          <div class="page-title">QR Scanner</div>
+          <div class="page-subtitle">Scan a VaultID QR code to verify identity</div>
+        </div>
+        <div class="content-area" style="max-width:500px">
+          <div class="scanner-area">
+            <video id="scanner-video" autoplay playsinline muted></video>
+            <canvas id="scanner-canvas" style="display:none"></canvas>
+            <div class="scanner-overlay">
+              <div class="scan-frame-box"><div class="scan-line-anim"></div></div>
+            </div>
+          </div>
+          <button id="start-scan-btn" class="btn btn-primary btn-full" onclick="startScanner()">Start Scanner</button>
+
+          <div class="scan-result-card" id="scan-result">
+            <div class="scan-ok">✓ Identity Verified</div>
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">Name</span><strong id="scan-name">—</strong></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">ID Number</span><span id="scan-id" style="font-family:var(--mono);font-size:12px;color:var(--accent)">—</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">Card Type</span><span id="scan-type">—</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">Organisation</span><span id="scan-org">—</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">Expires</span><span id="scan-expiry">—</span></div>
+              <div style="border-top:1px solid var(--border);padding-top:8px;font-size:11px;color:var(--muted2)">Scanned at: <span id="scan-time">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SECURITY VIEW ===== -->
+      <div id="view-security" class="section-view" style="display:none">
+        <div class="page-header">
+          <div class="page-title">Security</div>
+          <div class="page-subtitle">Your data protection and privacy settings</div>
+        </div>
+        <div class="content-area" style="max-width:600px">
+
+          <div style="background:rgba(45,212,170,0.06);border:1px solid rgba(45,212,170,0.18);border-radius:var(--radius);padding:18px;margin-bottom:20px">
+            <div style="font-weight:700;color:var(--accent3);margin-bottom:8px;display:flex;gap:8px;align-items:center">
+              <span>🔒</span> Zero-Knowledge Encryption Active
+            </div>
+            <div style="font-size:13px;color:var(--muted2);line-height:1.6">
+              All your ID cards, documents, and files are encrypted with <strong style="color:var(--text)">AES-256</strong> using your password as the key.
+              Not even the database admin can read your data — your password never leaves your device in plain form.
+            </div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px">
+            <div class="section-title" style="margin-bottom:14px">Account Info</div>
+            <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2)">Name</span><strong id="sec-name">—</strong></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2)">Email</span><span id="sec-email" style="color:var(--accent)">—</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2)">Role</span><span id="sec-role">—</span></div>
+            </div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px">
+            <div class="section-title" style="margin-bottom:14px">Encryption Details</div>
+            <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2)">Algorithm</span><span class="enc-badge">AES-256</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2)">Key Derivation</span><span>SHA-256 of password</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2)">Admin access</span><span style="color:var(--danger);font-weight:700">Blocked — 🔒 Private</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2)">Storage</span><span>Encrypted base64 in DB</span></div>
+            </div>
+          </div>
+
+          <button class="btn btn-danger btn-full" onclick="logout()">Sign Out</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================
+     ADMIN PAGE
+     ============================================================ -->
+<div id="admin-page" class="page">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24"><path d="M10 2L3 6v5c0 4.5 3 8 7 9 4-1 7-4.5 7-9V6l-7-4z"/></svg>
+        </div>
+        VaultID Admin
+      </div>
+
+      <div class="sidebar-user">
+        <div class="user-avatar" style="background:linear-gradient(135deg,var(--danger),var(--warn))">AD</div>
+        <div class="user-info">
+          <div class="user-name" id="admin-name">Admin</div>
+          <div class="user-role" id="admin-email">admin@vaultid.app</div>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Dashboard</div>
+        <button class="admin-nav-item nav-item active" data-section="users" onclick="navigateAdmin('users')">
+          <svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 17c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 11a3 3 0 0 1 0 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 5a3 3 0 0 1 0 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Users
+        </button>
+        <button class="admin-nav-item nav-item" data-section="scanner" onclick="navigateAdmin('scanner')">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M3 7V5a2 2 0 0 1 2-2h2M13 3h2a2 2 0 0 1 2 2v2M17 13v2a2 2 0 0 1-2 2h-2M7 17H5a2 2 0 0 1-2-2v-2M3 10h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          QR Scanner
+        </button>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button class="nav-item" onclick="logout()" style="color:var(--danger)">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M13 10H3M13 10l-3-3M13 10l-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 6V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Sign Out
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <!-- Admin Users View -->
+      <div id="admin-view-users" class="admin-view">
+        <div class="page-header">
+          <div class="page-title">Admin Dashboard</div>
+          <div class="page-subtitle">User management — card content is encrypted and inaccessible</div>
+        </div>
+        <div class="content-area">
+          <div class="stats-row">
+            <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value blue" id="stat-users">—</div></div>
+            <div class="stat-card"><div class="stat-label">Total Cards</div><div class="stat-value purple" id="stat-cards">—</div></div>
+            <div class="stat-card"><div class="stat-label">Documents</div><div class="stat-value teal" id="stat-docs">—</div></div>
+            <div class="stat-card"><div class="stat-label">Scans Today</div><div class="stat-value orange" id="stat-scans">—</div></div>
+          </div>
+
+          <div style="background:rgba(240,92,92,0.06);border:1px solid rgba(240,92,92,0.18);border-radius:var(--radius);padding:14px;margin-bottom:20px;font-size:13px;color:var(--muted2)">
+            🔒 <strong style="color:var(--text)">Zero-Access Policy:</strong> All user card data and documents are encrypted with each user's own password. The admin dashboard shows only metadata — names, counts, and dates. Card content, files, and documents are always displayed as "🔒 Private".
+          </div>
+
+          <!-- Search -->
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <input id="admin-search" type="text" class="form-input" placeholder="Search by name or email..." style="flex:1" oninput="adminSearch()"/>
+          </div>
+
+          <div style="overflow-x:auto;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Joined</th>
+                  <th style="text-align:center">Cards</th>
+                  <th style="text-align:center">Docs</th>
+                  <th>Content</th>
+                  <th>Last Login</th>
+                </tr>
+              </thead>
+              <tbody id="admin-user-table">
+                <tr><td colspan="7" style="text-align:center;color:var(--muted2);padding:30px">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Scanner View -->
+      <div id="admin-view-scanner" class="admin-view" style="display:none">
+        <div class="page-header">
+          <div class="page-title">Gate / Security Scanner</div>
+          <div class="page-subtitle">Scan student/employee QR codes for verification</div>
+        </div>
+        <div class="content-area" style="max-width:500px">
+          <div class="scanner-area">
+            <video id="admin-scanner-video" autoplay playsinline muted></video>
+            <canvas id="admin-scanner-canvas" style="display:none"></canvas>
+            <div class="scanner-overlay">
+              <div class="scan-frame-box"><div class="scan-line-anim"></div></div>
+            </div>
+          </div>
+          <button id="admin-scan-btn" class="btn btn-primary btn-full" onclick="startAdminScanner()">Start Scanner</button>
+
+          <div class="scan-result-card" id="admin-scan-result">
+            <div class="scan-ok">✓ Identity Verified</div>
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">Name</span><strong id="ascan-name">—</strong></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">ID Number</span><span id="ascan-id" style="font-family:var(--mono);font-size:12px;color:var(--accent)">—</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">Type</span><span id="ascan-type">—</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:var(--muted2);font-size:13px">Organisation</span><span id="ascan-org">—</span></div>
+              <div style="border-top:1px solid var(--border);padding-top:8px;font-size:11px;color:var(--muted2)">Scanned: <span id="ascan-time">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODALS
+     ============================================================ -->
+
+<!-- Add Card Modal -->
+<div class="modal-overlay" id="add-card-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="modal-title">Add ID Card</div>
+      <button class="modal-close" onclick="closeAddCardModal()">✕</button>
+    </div>
+    <form id="add-card-form" onsubmit="handleAddCard(event)">
+      <div class="form-group">
+        <label class="form-label">Card Type</label>
+        <select class="form-input" name="card_type" required>
+          <option value="">Select type...</option>
+          <option value="student">Student ID</option>
+          <option value="bus">Bus Pass</option>
+          <option value="library">Library Card</option>
+          <option value="employee">Employee ID</option>
+          <option value="uploaded">Uploaded Physical Card</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" type="text" name="card_name" placeholder="As printed on card" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ID / Card Number</label>
+        <input class="form-input" type="text" name="card_number" placeholder="e.g. CS2024-00812" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Organisation / Institution</label>
+        <input class="form-input" type="text" name="org_name" placeholder="e.g. Anna University"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expiry Date</label>
+        <input class="form-input" type="date" name="expiry_date"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (private)</label>
+        <input class="form-input" type="text" name="notes" placeholder="Any private notes (encrypted)"/>
+      </div>
+
+      <!-- Card Image Upload -->
+      <div class="form-group">
+        <label class="form-label">Upload Card Photo <span style="color:var(--muted);font-weight:400">(optional — for physical card image)</span></label>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button type="button" class="btn btn-ghost" onclick="document.getElementById('card-image-input').click()">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M2 12l3-3 2 2 3-4 4 5H2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="5" cy="5" r="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.2"/></svg>
+            Choose Image
+          </button>
+          <span style="font-size:12px;color:var(--muted2)">JPG, PNG, WebP — max 5MB</span>
+        </div>
+        <input type="file" id="card-image-input" accept="image/jpeg,image/png,image/webp"/>
+        <div id="card-image-preview"></div>
+      </div>
+
+      <div style="font-size:11px;color:var(--accent3);margin-bottom:16px;display:flex;gap:6px">
+        <span>🔒</span> All card data is encrypted with AES-256 before storage. Admins see only metadata.
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeAddCardModal()">Cancel</button>
+        <button id="save-card-btn" type="submit" class="btn btn-primary btn-full">Save Card</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- QR View Modal -->
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal" style="text-align:center;max-width:380px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title">Card QR Code</div>
+      <button class="modal-close" onclick="closeQRModal()">✕</button>
+    </div>
+    <div class="qr-wrapper">
+      <div id="qr-display"></div>
+    </div>
+    <div class="qr-card-info" style="margin-top:14px">
+      <div class="qr-card-name" id="qr-card-name">—</div>
+      <div class="qr-card-id" id="qr-card-id">—</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:4px" id="qr-card-org"></div>
+      <div style="font-size:12px;color:var(--muted2)" id="qr-card-expiry"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button id="download-qr-btn" class="btn btn-primary btn-full">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Download QR
+      </button>
+      <button class="btn btn-ghost btn-full" onclick="closeQRModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Scripts -->
+<script src="js/crypto.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
