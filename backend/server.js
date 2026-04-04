@@ -64,9 +64,13 @@ app.get('/api/health', (req, res) => {
     app: 'VaultID API v2.0 (MongoDB Atlas)'
   });
 });
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
 // 404
-app.use((req, res) => res.status(404).json({ error: 'Endpoint not found' }));
+app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint not found0' }));
 
 // Global error handler
 app.use((err, req, res, next) => {
