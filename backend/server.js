@@ -8,47 +8,7 @@ const fs = require('fs');
 const session = require('express-session');
 const passport = require('passport');
 const connectDB  = require('./config/database');
-try {
-  const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const User = require('./models/User'); // Make sure this path points to your User model!
-
-// Teach Passport what the "google" strategy is
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL
-  },
-  async function(accessToken, refreshToken, profile, done) {
-    try {
-      // 1. Check if this user already exists in your database
-      let user = await User.findOne({ email: profile.emails[0].value.toLowerCase() });
-      
-      if (user) {
-        // User exists, log them in
-        return done(null, user);
-      } else {
-        // 2. User doesn't exist, create a new account for them!
-        user = await User.create({
-          name: profile.displayName,
-          email: profile.emails[0].value.toLowerCase(),
-          role: 'user',
-          // Since they logged in with Google, they don't have a standard password.
-          // You can generate a random string or leave it empty if your schema allows.
-          password: Math.random().toString(36).slice(-8) + 'A1!' 
-        });
-        return done(null, user);
-      }
-    } catch (err) {
-      console.error(err);
-      return done(err, null);
-    }
-  }
-));
-  require('./config/passport'); // Load passport config
-} catch (err) {
-  console.error('⚠️  Passport config failed (Google OAuth may be unavailable):', err.message);
-}
+require('./config/passport'); // Load Passport Google strategy and serialization
 
 const app = express();
 const PORT = process.env.PORT || 3001;
