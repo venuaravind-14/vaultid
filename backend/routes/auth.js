@@ -69,8 +69,8 @@ router.get('/google/callback',
     // Generate JWT token for the authenticated user
     const token = generateToken(req.user);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5500';
-    // Redirect to frontend with token
-    res.redirect(`${frontendUrl}?token=${token}&user=${encodeURIComponent(JSON.stringify({ 
+    // Redirect to frontend with token and user info in query params
+    res.redirect(`${frontendUrl}/vault.html?token=${token}&user=${encodeURIComponent(JSON.stringify({ 
       id: req.user._id, 
       name: req.user.name, 
       email: req.user.email, 

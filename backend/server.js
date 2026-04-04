@@ -8,7 +8,11 @@ const fs = require('fs');
 const session = require('express-session');
 const passport = require('passport');
 const connectDB  = require('./config/database');
-require('./config/passport'); // Load passport config
+try {
+  require('./config/passport'); // Load passport config
+} catch (err) {
+  console.error('⚠️  Passport config failed (Google OAuth may be unavailable):', err.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
