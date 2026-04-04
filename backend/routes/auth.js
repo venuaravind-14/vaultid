@@ -69,7 +69,7 @@ router.get('/google/callback',
     // Generate JWT token for the authenticated user
     const token = generateToken(req.user);
     
-    // ✅ RELATIVE REDIRECT: This guarantees they stay on your Render domain!
+    // ✅ Redirect to vault.html with token in query params
     res.redirect(`/vault.html?token=${token}&user=${encodeURIComponent(JSON.stringify({ 
       id: req.user._id, 
       name: req.user.name, 

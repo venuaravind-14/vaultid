@@ -47,6 +47,9 @@ app.use(passport.session());
 // Serve uploaded card images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve the entire frontend folder as static (vault.html, css/, js/)
+app.use(express.static(path.join(__dirname, '../frontend')));
+
 // API Routes
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/cards',     require('./routes/cards'));
@@ -64,13 +67,14 @@ app.get('/api/health', (req, res) => {
     app: 'VaultID API v2.0 (MongoDB Atlas)'
   });
 });
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
+// Serve vault.html for any non-API route
 app.get('/{*splat}', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/vault.html'));
 });
-// 404
-app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint not found0' }));
+
+// 404 for unknown API routes
+app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint not found' }));
 
 // Global error handler
 app.use((err, req, res, next) => {
