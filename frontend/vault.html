@@ -378,6 +378,62 @@
 </div>
 
 <!-- Toast -->
+<!-- ============================================================
+     VIEW FILE PASSWORD MODAL
+============================================================ -->
+<div id="view-file-modal" class="modal-overlay">
+  <div class="modal" style="max-width:360px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title">Enter File Password</div>
+      <button class="modal-close" onclick="closeViewFileModal()">✕</button>
+    </div>
+    <form onsubmit="handleViewFile(event)">
+      <input type="hidden" id="view-file-id"/>
+      <input type="hidden" id="view-file-kind"/>
+      <input type="hidden" id="view-file-mime"/>
+      <div style="text-align:center;font-size:32px;margin-bottom:8px">🔒</div>
+      <p style="font-size:13px;color:var(--muted2);text-align:center;margin-bottom:6px">Viewing:</p>
+      <p id="view-file-name-lbl" style="font-size:13px;font-weight:700;text-align:center;margin-bottom:18px;color:var(--text);word-break:break-all"></p>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="view-file-password" type="password" class="form-input" placeholder="Enter file password" required/>
+      </div>
+      <div id="view-file-error" style="color:var(--danger);font-size:12px;margin-bottom:12px;min-height:16px"></div>
+      <button type="submit" class="btn btn-primary btn-full">Open File</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     UPLOAD FILE PASSWORD MODAL
+============================================================ -->
+<div id="upload-file-modal" class="modal-overlay">
+  <div class="modal" style="max-width:360px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title">Set File Password</div>
+      <button class="modal-close" onclick="closeUploadFileModal()">✕</button>
+    </div>
+    <form onsubmit="handleUploadConfirm(event)">
+      <input type="hidden" id="upload-file-kind"/>
+      <div style="text-align:center;font-size:32px;margin-bottom:8px">📁</div>
+      <p style="font-size:13px;color:var(--muted2);text-align:center;margin-bottom:6px">Uploading:</p>
+      <p id="upload-file-name-lbl" style="font-size:13px;font-weight:700;text-align:center;margin-bottom:18px;color:var(--text);word-break:break-all"></p>
+      <div class="form-group">
+        <label class="form-label">Set a Password <span style="color:var(--danger)">*</span></label>
+        <input id="upload-file-password" type="password" class="form-input" placeholder="Password to protect this file" required/>
+        <div style="font-size:11px;color:var(--accent3);margin-top:6px;display:flex;gap:5px">
+          <span>🔒</span> You'll need this password to view the file later. Keep it safe.
+        </div>
+      </div>
+      <div id="upload-file-error" style="color:var(--danger);font-size:12px;margin-bottom:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost btn-full" onclick="closeUploadFileModal()">Cancel</button>
+        <button id="upload-confirm-btn" type="submit" class="btn btn-primary btn-full">Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
 <script src="/js/crypto.js"></script>
