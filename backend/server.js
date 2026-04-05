@@ -68,7 +68,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve vault.html for any non-API route
+// Redirect bare root to vault.html
+app.get('/', (req, res) => {
+  res.redirect('/vault.html');
+});
+
+// Serve vault.html for any other non-API, non-static route
 app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/vault.html'));
 });
