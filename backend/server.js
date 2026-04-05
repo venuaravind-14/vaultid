@@ -1,11 +1,11 @@
 require('dns').setDefaultResultOrder('ipv4first');
 require('dotenv').config();
-const express = require('express');
-const cors    = require('cors');
-const morgan  = require('morgan');
-const path    = require('path');
-const fs      = require('fs');
-const session = require('express-session');
+const express  = require('express');
+const cors     = require('cors');
+const morgan   = require('morgan');
+const path     = require('path');
+const fs       = require('fs');
+const session  = require('express-session');
 const passport = require('passport');
 const mongoose = require('mongoose');
 const connectDB = require('./config/database');
@@ -19,6 +19,8 @@ const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 // ── Session ───────────────────────────────────────────────────
+// MemoryStore is fine for this app — single dyno, sessions are
+// short-lived and JWT handles auth. Warning is just noise.
 app.use(session({
   secret:            process.env.JWT_SECRET || 'vaultid_dev_secret',
   resave:            false,
@@ -48,7 +50,7 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ── Logger (dev only) ─────────────────────────────────────────
+// ── Logger ────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
@@ -64,7 +66,7 @@ const frontendPath = path.join(__dirname, '../frontend');
 console.log('📁 Serving frontend from:', frontendPath);
 app.use(express.static(frontendPath));
 
-// ── API routes (MUST come before frontend catch-all) ──────────
+// ── API routes ────────────────────────────────────────────────
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/cards',     require('./routes/cards'));
 app.use('/api/documents', require('./routes/documents'));
@@ -80,20 +82,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ── API 404 (MUST come before frontend catch-all) ─────────────
-// Any /api/* route that didn't match above returns JSON, not HTML
+// ── API 404 (before frontend catch-all) ───────────────────────
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-// ── Frontend routes (MUST come last) ─────────────────────────
-// Explicit route: / → login page (vault.html IS the login page)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'vault.html'));
-});
-
-// Everything else → vault.html (handles deep links, refreshes)
-app.get('*', (req, res) => {
+// ── Frontend catch-all ────────────────────────────────────────
+// FIX: Express 5 requires '/*' not '*'
+app.get('/*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'vault.html'));
 });
 

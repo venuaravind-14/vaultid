@@ -1,11 +1,8 @@
 {
   "name": "vaultid",
   "version": "1.0.0",
-  "description": "VaultID - Digital ID Wallet",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "cd backend && nodemon server.js",
-    "seed": "node backend/seed-admin.js"
+    "start": "node backend/server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
