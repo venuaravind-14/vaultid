@@ -70,7 +70,7 @@ router.get('/google/callback',
     const token = generateToken(req.user);
     
     // ✅ Redirect to vault.html with token in query params
-    res.redirect(`/vault.html?token=${token}&user=${encodeURIComponent(JSON.stringify({ 
+    res.redirect(`/?token=${token}&user=${encodeURIComponent(JSON.stringify({ 
       id: req.user._id, 
       name: req.user.name, 
       email: req.user.email, 
