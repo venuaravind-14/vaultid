@@ -3,7 +3,7 @@ services:
     name: vaultid
     env: node
     rootDir: .
-    buildCommand: npm install
+    buildCommand: cd backend && npm install
     startCommand: node backend/server.js
     envVars:
       - key: NODE_ENV

@@ -87,6 +87,7 @@ app.use('/api', (req, res) => {
 
 // ── Frontend catch-all ────────────────────────────────────────
 // Express 4 standard — works fine, no path-to-regexp issues
+app.get('/', (req, res) => res.redirect('/vault.html'));
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'vault.html'));
 });
