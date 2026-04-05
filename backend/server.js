@@ -1,13 +1,13 @@
 require('dns').setDefaultResultOrder('ipv4first');
 require('dotenv').config();
-const express  = require('express');
-const cors     = require('cors');
-const morgan   = require('morgan');
-const path     = require('path');
-const fs       = require('fs');
-const session  = require('express-session');
-const passport = require('passport');
-const mongoose = require('mongoose');
+const express   = require('express');
+const cors      = require('cors');
+const morgan    = require('morgan');
+const path      = require('path');
+const fs        = require('fs');
+const session   = require('express-session');
+const passport  = require('passport');
+const mongoose  = require('mongoose');
 const connectDB = require('./config/database');
 require('./config/passport');
 
@@ -19,8 +19,6 @@ const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 // ── Session ───────────────────────────────────────────────────
-// MemoryStore is fine for this app — single dyno, sessions are
-// short-lived and JWT handles auth. Warning is just noise.
 app.use(session({
   secret:            process.env.JWT_SECRET || 'vaultid_dev_secret',
   resave:            false,
@@ -66,7 +64,7 @@ const frontendPath = path.join(__dirname, '../frontend');
 console.log('📁 Serving frontend from:', frontendPath);
 app.use(express.static(frontendPath));
 
-// ── API routes ────────────────────────────────────────────────
+// ── API routes (before catch-all) ────────────────────────────
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/cards',     require('./routes/cards'));
 app.use('/api/documents', require('./routes/documents'));
@@ -88,7 +86,7 @@ app.use('/api', (req, res) => {
 });
 
 // ── Frontend catch-all ────────────────────────────────────────
-// FIX: Express 5 requires '/*' not '*'
+// Express 4 standard — works fine, no path-to-regexp issues
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'vault.html'));
 });
