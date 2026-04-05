@@ -43,13 +43,26 @@ class VaultAPI {
   loginWithGoogle() { window.location.href = `${API_BASE}/auth/google`; }
   handleGoogleCallback() {
     const params = new URLSearchParams(window.location.search);
+
     const token = params.get('token');
     const user = params.get('user');
+
     if (token && user) {
-      this.token = token;
-      this.user = JSON.parse(user);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      return { token, user: JSON.parse(user) };
+      try {
+        // 🔥 FIX: decode URL first
+        const decodedUser = JSON.parse(decodeURIComponent(user));
+
+        this.token = token;
+        this.user = decodedUser;
+
+        // Clean URL (remove token)
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        return { token, user: decodedUser };
+      } catch (err) {
+        console.error("Google callback parse error:", err);
+        return null;
+      }
     }
     return null;
   }
