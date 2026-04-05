@@ -89,7 +89,7 @@ app.use('/api', (req, res) => {
 
 // ── Frontend catch-all ────────────────────────────────────────
 // FIX: Express 5 requires '/*' not '*'
-app.get('/*', (req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'vault.html'));
 });
 
