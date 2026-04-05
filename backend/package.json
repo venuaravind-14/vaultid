@@ -1,11 +1,11 @@
 {
-  "name": "vaultid-backend",
+  "name": "vaultid",
   "version": "1.0.0",
-  "description": "Digital ID Card Wallet - Backend API (MongoDB Atlas)",
-  "main": "server.js",
+  "description": "VaultID - Digital ID Wallet",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node backend/server.js",
+    "dev": "cd backend && nodemon server.js",
+    "seed": "node backend/seed-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -19,8 +19,5 @@
     "multer": "^1.4.5-lts.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
   }
 }

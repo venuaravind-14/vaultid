@@ -1,100 +1,114 @@
 require('dns').setDefaultResultOrder('ipv4first');
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const path = require('path');
-const fs = require('fs');
+const cors    = require('cors');
+const morgan  = require('morgan');
+const path    = require('path');
+const fs      = require('fs');
 const session = require('express-session');
 const passport = require('passport');
-const connectDB  = require('./config/database');
-require('./config/passport'); // Load Passport Google strategy and serialization
+const mongoose = require('mongoose');
+const connectDB = require('./config/database');
+require('./config/passport');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3001;
 
-// Ensure uploads directory exists
-const uploadDir = process.env.UPLOAD_DIR || './uploads';
+// ── Uploads directory ─────────────────────────────────────────
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-// Session middleware (required for Passport)
+// ── Session ───────────────────────────────────────────────────
 app.use(session({
-  secret: process.env.JWT_SECRET,
-  resave: false,
-  saveUninitialized: true,
-  cookie: { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }
+  secret:            process.env.JWT_SECRET || 'vaultid_dev_secret',
+  resave:            false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge:   24 * 60 * 60 * 1000
+  }
 }));
 
-// Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:3000', 'http://127.0.0.1:3000',
-    'http://localhost:5500', 'http://127.0.0.1:5500',
-    'https://vaultid.netlify.app',
-    'https://vaultid-ubsw.onrender.com',
-    process.env.FRONTEND_URL
-  ],
-  credentials: true
-}));
+// ── CORS ──────────────────────────────────────────────────────
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'https://vaultid.netlify.app',
+  'https://vaultid-ubsw.onrender.com',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+
+// ── Body parsers ──────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(morgan('dev'));
 
-// Passport middleware
+// ── Logger (dev only) ─────────────────────────────────────────
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
+
+// ── Passport ──────────────────────────────────────────────────
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Serve uploaded card images statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ── Static files ──────────────────────────────────────────────
+app.use('/uploads', express.static(uploadDir));
 
-// Serve the entire frontend folder as static (vault.html, css/, js/)
-app.use(express.static(path.join(__dirname, '../frontend')));
+const frontendPath = path.join(__dirname, '../frontend');
+console.log('📁 Serving frontend from:', frontendPath);
+app.use(express.static(frontendPath));
 
-// API Routes
+// ── API routes (MUST come before frontend catch-all) ──────────
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/cards',     require('./routes/cards'));
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/files',     require('./routes/files'));
 app.use('/api/admin',     require('./routes/admin'));
 
-// Health check
 app.get('/api/health', (req, res) => {
-  const mongoose = require('mongoose');
   res.json({
-    status: 'ok',
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    status:    'ok',
+    database:  mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString(),
-    app: 'VaultID API v2.0 (MongoDB Atlas)'
+    app:       'VaultID API v2.0'
   });
 });
 
-// Redirect bare root to vault.html
+// ── API 404 (MUST come before frontend catch-all) ─────────────
+// Any /api/* route that didn't match above returns JSON, not HTML
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// ── Frontend routes (MUST come last) ─────────────────────────
+// Explicit route: / → login page (vault.html IS the login page)
 app.get('/', (req, res) => {
-  res.redirect('/vault.html');
+  res.sendFile(path.join(frontendPath, 'vault.html'));
 });
 
-// Serve vault.html for any other non-API, non-static route
-app.get('/{*splat}', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/vault.html'));
+// Everything else → vault.html (handles deep links, refreshes)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'vault.html'));
 });
 
-// 404 for unknown API routes
-app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint not found' }));
-
-// Global error handler
+// ── Global error handler ──────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-// Connect to MongoDB Atlas, then start server
+// ── Start ─────────────────────────────────────────────────────
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`\n🔐 VaultID Backend  →  http://localhost:${PORT}`);
     console.log(`🍃 Database        →  MongoDB Atlas`);
-    console.log(`📋 Health check    →  http://localhost:${PORT}/api/health`);
-    console.log(`👤 Demo admin      →  admin@vaultid.app / admin123`);
-    console.log(`👤 Demo user       →  demo@vaultid.app / demo1234\n`);
+    console.log(`📋 Health check    →  http://localhost:${PORT}/api/health\n`);
   });
 });
 
